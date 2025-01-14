@@ -279,4 +279,3 @@ define KernelPackage/leds-lp5562/description
 endef
 
 $(eval $(call KernelPackage,leds-lp5562))
-
