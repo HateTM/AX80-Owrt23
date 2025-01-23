@@ -132,6 +132,12 @@
 	reset-delay-us = <1500000>;
 	reset-post-delay-us = <1000000>;
 	
+	phy5: phy@5 {
+		compatible = "ethernet-phy-ieee802.3-c45";
+		reg = <5>;
+		
+	};
+	
 	phy6: phy@6 {
 		compatible = "ethernet-phy-ieee802.3-c45";
 		reg = <6>;
@@ -210,11 +216,6 @@
 		#address-cells = <1>;
 		#size-cells = <0>;
 		
-		port@0 {
-			reg = <0>;
-			label = "lan0";
-		};
-		
 		port@1 {
 			reg = <1>;
 			label = "lan1";
@@ -228,6 +229,18 @@
 		port@3 {
 			reg = <3>;
 			label = "lan3";
+		};
+
+		port@4 {
+			reg = <4>;
+			label = "lan0";
+        };
+
+		port@5 {
+			reg = <5>;
+			label = "wan";
+			ethernet = <&gmac1>;
+			phy-mode = "2500base-x";
 		};
 		
 		port@6 {
