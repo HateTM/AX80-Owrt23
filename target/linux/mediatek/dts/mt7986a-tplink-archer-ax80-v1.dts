@@ -12,10 +12,11 @@
 	
 	aliases {
 		serial0 = &uart0;
-		led-boot = &led_blue0;
-		led-failsafe = &led_red0;
-		led-running = &led_blue0;
-		led-upgrade = &led_green0;
+		label-mac-device = &gmac0;
+		led-boot = &led_B1;
+		led-failsafe = &led_R1;
+		led-running = &led_B1;
+		led-upgrade = &led_G1;
 	};
 	
 	chosen {
@@ -72,6 +73,14 @@
 		regulator-boot-on;
 		regulator-always-on;
 	};
+	reg_5v: regulator-5v {
+		compatible = "regulator-fixed";
+		regulator-name = "fixed-5V";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		regulator-boot-on;
+		regulator-always-on;
+	};
 	
 	sound {
 		compatible = "mediatek,mt7986-wm8960-machine";
@@ -101,6 +110,7 @@
 	status = "okay";
 };
 
+
 &eth {
 	status = "okay";
 	gmac0: mac@0 {
@@ -116,42 +126,64 @@
 	gmac1: mac@1 {
 		compatible = "mediatek,eth-mac";
 		reg = <1>;
-		phy-handle = <&phy6>;
 		phy-mode = "2500base-x";
+		phy-handle = <&phy6>;
 	};
 	mdio: mdio-bus {
 		#address-cells = <1>;
 		#size-cells = <0>;
-	};
-};
-
-&mdio {
-	#address-cells = <1>;
-	#size-cells = <0>;
-	reset-gpios = <&pio 6 GPIO_ACTIVE_LOW>;
-	reset-delay-us = <1500000>;
-	reset-post-delay-us = <1000000>;
-	
-	phy5: phy@5 {
-		compatible = "ethernet-phy-ieee802.3-c45";
-		reg = <5>;
 		
-	};
-	
-	phy6: phy@6 {
-		compatible = "ethernet-phy-ieee802.3-c45";
-		reg = <6>;
+		reset-gpios = <&pio 6 GPIO_ACTIVE_LOW>;
+		reset-delay-us = <1500000>;
+		reset-post-delay-us = <1000000>;
 		
-	};
-	
-	switch: switch@1f {
-		compatible = "mediatek,mt7531";
-		reg = <31>;
-		reset-gpios = <&pio 5 GPIO_ACTIVE_HIGH>;
-		interrupt-controller;
-		#interrupt-cells = <1>;
-		interrupt-parent = <&pio>;
-		interrupts = <66 IRQ_TYPE_LEVEL_HIGH>;
+		/* WAN/LAN 2.5Gbps phy
+		MaxLinear GPY211C0VC (SLNW8) */
+		phy6: phy@6 {
+			compatible = "ethernet-phy-ieee802.3-c45";
+			reg = <6>;
+		};
+		
+		switch@0 {
+			compatible = "mediatek,mt7531";
+			reg = <0x1f>;
+			reset-gpios = <&pio 5 GPIO_ACTIVE_HIGH>;
+			interrupt-controller;
+			#interrupt-cells = <1>;
+			interrupt-parent = <&pio>;
+			interrupts = <66 IRQ_TYPE_LEVEL_HIGH>;
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+				port@0 {
+					reg = <0>;
+					label = "lan0";
+				};
+				port@1 {
+					reg = <1>;
+					label = "lan1";
+				};
+				port@2 {
+					reg = <2>;
+					label = "lan2";
+				};
+				port@3 {
+					reg = <3>;
+					label = "lan3";
+				};
+				port@6 {
+					reg = <6>;
+					label = "cpu";
+					ethernet = <&gmac0>;
+					phy-mode = "2500base-x";
+					fixed-link {
+						speed = <2500>;
+						full-duplex;
+						pause;
+					};
+				};
+			};
+		};
 	};
 };
 &spi0 {
@@ -188,7 +220,7 @@
 		partition@3500000 {
 			label = "ubi1";
 			reg = <0x3500000 0x3200000>;
-			read-only;
+			
 		};
 		
 		partition@6700000 {
@@ -207,53 +239,6 @@
 			label = "mali_data";
 			reg = <0x7300000 0x800000>;
 			
-		};
-	};
-};
-
-&switch {
-	ports {
-		#address-cells = <1>;
-		#size-cells = <0>;
-		
-		port@1 {
-			reg = <1>;
-			label = "lan1";
-		};
-		
-		port@2 {
-			reg = <2>;
-			label = "lan2";
-		};
-		
-		port@3 {
-			reg = <3>;
-			label = "lan3";
-		};
-
-		port@4 {
-			reg = <4>;
-			label = "lan0";
-        };
-
-		port@5 {
-			reg = <5>;
-			label = "wan";
-			ethernet = <&gmac1>;
-			phy-mode = "2500base-x";
-		};
-		
-		port@6 {
-			reg = <6>;
-			label = "cpu";
-			ethernet = <&gmac0>;
-			phy-mode = "2500base-x";
-			
-			fixed-link {
-				speed = <2500>;
-				full-duplex;
-				pause;
-			};
 		};
 	};
 };
@@ -279,6 +264,12 @@
 			pins = "SPI2_CLK", "SPI2_MOSI", "SPI2_MISO";
 			drive-strength = <8>;
 			mediatek,pull-down-adv = <0>; /* bias-disable */
+		};
+	};
+	pcie_pins: pcie-pins {
+		mux {
+			function = "pcie";
+			groups = "pcie_clk", "pcie_wake", "pcie_pereset";
 		};
 	};
 	wf_2g_5g_pins: wf_2g_5g-pins {
@@ -314,7 +305,15 @@
 		};
 	};
 };
+&pcie {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pcie_pins>;
+	status = "okay";
+};
 
+&pcie_phy {
+	status = "okay";
+};
 &trng {
 	status = "okay";
 };
@@ -325,6 +324,7 @@
 
 &ssusb {
 	vusb33-supply = <&reg_3p3v>;
+	vbus-supply = <&reg_5v>;
 	status = "okay";
 };
 
@@ -341,8 +341,6 @@
 	pinctrl-names = "default", "dbdc";
 	pinctrl-0 = <&wf_2g_5g_pins>;
 	pinctrl-1 = <&wf_dbdc_pins>;
-
-	mediatek,mtd-eeprom = <&factory 0x0>;
 };
 &i2c0 {
 	status = "okay";
@@ -354,85 +352,84 @@
 		clock-mode = /bits/ 8 <1>;
 		
 		
-		led_blue0: led@0 {
-			chan-name = "blue-0";
+		led_B1: led@0 {
+			chan-name = "B1";
 			led-cur = /bits/ 8 <0x14>;
 			max-cur = /bits/ 8 <0x20>;
 			reg = <0>;
 			color = <LED_COLOR_ID_BLUE>;
-			function-enumerator = <0>;
+			
 		};
 		
 		led@1 {
-			chan-name = "blue-1";
+			chan-name = "B2";
 			led-cur = /bits/ 8 <0x14>;
 			max-cur = /bits/ 8 <0x20>;
 			reg = <1>;
 			color = <LED_COLOR_ID_BLUE>;
-			function-enumerator = <1>;
+			
 		};
 		
 		led@2 {
-			chan-name = "blue-2";
+			chan-name = "B3";
 			led-cur = /bits/ 8 <0x14>;
 			max-cur = /bits/ 8 <0x20>;
 			reg = <2>;
 			color = <LED_COLOR_ID_BLUE>;
-			function-enumerator = <2>;
+			
 		};
 		
-		led_green0: led@3 {
-			chan-name = "green-0";
+		led_G1: led@3 {
+			chan-name = "G1";
 			led-cur = /bits/ 8 <0x14>;
 			max-cur = /bits/ 8 <0x20>;
 			reg = <3>;
 			color = <LED_COLOR_ID_GREEN>;
-			function-enumerator = <0>;
 		};
 		
 		led@4 {
-			chan-name = "green-1";
+			chan-name = "G2";
 			led-cur = /bits/ 8 <0x14>;
 			max-cur = /bits/ 8 <0x20>;
 			reg = <4>;
 			color = <LED_COLOR_ID_GREEN>;
-			function-enumerator = <1>;
+			
 		};
 		
 		led@5 {
-			chan-name = "green-2";
+			chan-name = "G3";
 			led-cur = /bits/ 8 <0x14>;
 			max-cur = /bits/ 8 <0x20>;
 			reg = <5>;
 			color = <LED_COLOR_ID_GREEN>;
-			function-enumerator = <2>;
+			
 		};
 		
-		led_red0: led@6 {
-			chan-name = "red-0";
+		led_R1: led@6 {
+			chan-name = "R1";
 			led-cur = /bits/ 8 <0x14>;
 			max-cur = /bits/ 8 <0x20>;
 			reg = <6>;
 			color = <LED_COLOR_ID_RED>;
-			function-enumerator = <0>;
+			
 		};
 		
 		led@7 {
-			chan-name = "red-1";
+			chan-name = "R2";
 			led-cur = /bits/ 8 <0x14>;
 			max-cur = /bits/ 8 <0x20>;
 			reg = <7>;
 			color = <LED_COLOR_ID_RED>;
-			function-enumerator = <1>;
+			
 		};
 		
 		led@8 {
-			chan-name = "red-2";
+			chan-name = "R3";
 			led-cur = /bits/ 8 <0x14>;
 			max-cur = /bits/ 8 <0x20>;
 			reg = <8>;
 			color = <LED_COLOR_ID_RED>;
-			function-enumerator = <2>;
+			
 		};
 	};
 };
