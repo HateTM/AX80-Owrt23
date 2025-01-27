@@ -12,7 +12,6 @@
 	
 	aliases {
 		serial0 = &uart0;
-		label-mac-device = &gmac0;
 		led-boot = &led_B1;
 		led-failsafe = &led_R1;
 		led-running = &led_B1;
